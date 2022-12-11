@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <micro_ros_platformio.h>
+// #include "arduino/wifi/micro_ros_transport.h"
 #include <esp_camera.h>
 #include "esp_log.h"
 
@@ -12,9 +13,9 @@
 #include <micro_ros_utilities/string_utilities.h>
 #include <micro_ros_utilities/type_utilities.h>
 
-#if !defined(MICRO_ROS_TRANSPORT_ARDUINO_SERIAL)
-#error This example is only avaliable for Arduino framework with serial transport.
-#endif
+// #if !defined(MICRO_ROS_TRANSPORT_ARDUINO_SERIAL)
+// #error This example is only avaliable for Arduino framework with serial transport.
+// #endif
 
 #define CAM_PIN_PWDN 32
 #define CAM_PIN_RESET -1 //software reset will be performed
@@ -80,14 +81,14 @@ void timer_callback_img(rcl_timer_t * timer, int64_t last_call_time) {
       msg_img.header.frame_id = micro_ros_string_utilities_set(msg_img.header.frame_id, "cam_frame");
       msg_img.format = micro_ros_string_utilities_set(msg_img.format, "jpeg");
       RCSOFTCHECK(rcl_publish(&publisher_img, &msg_img, NULL));
-      ESP_LOGE(TAG, "Picture taken! Its size was: %zu bytes %d %d", 
-      img->len,img->width,img->height);
+      // ESP_LOGE(TAG, "Picture taken! Its size was: %zu bytes %d %d", 
+      // img->len,img->width,img->height);
 
       esp_camera_fb_return(img);
     }
     else
     {
-      ESP_LOGE(TAG, "Picture not taken!");
+      // ESP_LOGE(TAG, "Picture not taken!");
     }
 
   }
@@ -95,8 +96,16 @@ void timer_callback_img(rcl_timer_t * timer, int64_t last_call_time) {
 
 void setup() {
   // Configure serial transport
-  Serial.begin(115200);
-  set_microros_serial_transports(Serial);
+  // Serial.begin(115200);
+  // set_microros_serial_transports(Serial);
+  // Configure Wi Fi transport
+  IPAddress agent_ip(192, 168, 43, 6);
+  size_t agent_port = 8888;
+
+  char ssid[] = "hotspot";
+  char psk[]= "12345678";
+
+  set_microros_wifi_transports(ssid, psk, agent_ip, agent_port);
   delay(2000);
 
   static camera_config_t camera_config = {
@@ -126,9 +135,9 @@ void setup() {
     //.pixel_format = PIXFORMAT_RGB565, //YUV422,GRAYSCALE,RGB565,JPEG
     .pixel_format = PIXFORMAT_JPEG, //YUV422,GRAYSCALE,RGB565,JPEG
     //.frame_size = FRAMESIZE_QVGA,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
-    .frame_size = FRAMESIZE_VGA,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
+    .frame_size = FRAMESIZE_QVGA,    //QQVGA-UXGA Do not use sizes above QVGA when not JPEG
 
-    .jpeg_quality = 4, //0-63 lower number means higher quality
+    .jpeg_quality = 5, //0-63 lower number means higher quality
     .fb_count = 2,       //if more than one, i2s runs in continuous mode. Use only with JPEG
     .grab_mode = CAMERA_GRAB_WHEN_EMPTY,
 };
@@ -136,7 +145,7 @@ void setup() {
 
   esp_err_t err = esp_camera_init(&camera_config);
   if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Camera Init Failed");
+        // ESP_LOGE(TAG, "Camera Init Failed");
     return;
   }
 
@@ -145,7 +154,6 @@ void setup() {
 
   //create init_options
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-  Serial.print("started3");
 
   // create node
   RCCHECK(rclc_node_init_default(&node, "micro_ros_platformio_node", "", &support));
@@ -203,7 +211,6 @@ void setup() {
 
 
   msg.data = 0;
-  Serial.print("finish");
   RCSOFTCHECK(rcl_publish(&publisher, &msg, NULL));
 
   
@@ -237,5 +244,5 @@ void loop() {
   // delay(RCL_MS_TO_NS(1));
   RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1000000)));
   msg.data++;
-  Serial.print("Loop");
+  // Serial.print("Loop");
 }
